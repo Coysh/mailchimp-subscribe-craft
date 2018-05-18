@@ -17,6 +17,9 @@ use aelvan\mailchimpsubscribe\variables\MailchimpSubscribeVariable;
 use Craft;
 use craft\base\Plugin;
 use craft\web\twig\variables\CraftVariable;
+use craft\web\UrlManager;
+use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterUrlRulesEvent;
 
 use yii\base\Event;
 
@@ -49,9 +52,9 @@ class MailchimpSubscribe extends Plugin
     {
         parent::init();
         self::$plugin = $this;
-        
+
         $this->set('mailchimpSubscribe', '\aelvan\mailchimpsubscribe\services\MailchimpSubscribeService');
-        
+
         Event::on(
             CraftVariable::class,
             CraftVariable::EVENT_INIT,
@@ -61,9 +64,18 @@ class MailchimpSubscribe extends Plugin
                 $variable->set('mailchimpSubscribe', MailchimpSubscribeVariable::class);
             }
         );
-        
+
+				// Register our site routes
+				Event::on(
+						UrlManager::class,
+						UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+						function (RegisterUrlRulesEvent $event) {
+								$event->rules['siteActionTrigger1'] = 'mailchimp-subscribe/list';
+						}
+				);
+
     }
-    
+
     /**
      * @inheritdoc
      */

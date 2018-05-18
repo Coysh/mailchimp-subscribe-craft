@@ -141,6 +141,181 @@ class MailchimpSubscribeService extends Component
         return $this->getMessage(1000, $email, [], Craft::t('mailchimp-subscribe', 'The email address does not exist on this list'), false);
     }
 
+    /**
+     * Get groups the user is subscribed too
+     *
+     * @param string $email
+     * @param string $formListId
+     *
+     * @return array|mixed
+     */
+    public function getGroups($email, $formListId)
+    {
+        // get settings
+        $settings = Plugin::$plugin->getSettings();
+
+        if ($email === '' || !$this->validateEmail($email)) { // error, invalid email
+            return $this->getMessage(1000, $email, false, Craft::t('mailchimp-subscribe', 'Invalid email'));
+        }
+
+        $listIdStr = $formListId ?? $settings->listId;
+
+        // check if we got an api key and a list id
+        if ($settings->apiKey === '' || $listIdStr === '') { // error, no API key or list id
+            return $this->getMessage(2000, $email, false, Craft::t('mailchimp-subscribe', 'API Key or List ID not supplied. Check your settings.'));
+        }
+
+        if ($member = $this->getMemberByEmail($email, $listIdStr)) {
+					$interests = [];
+					foreach ($member['interests'] as $interestId => $interest) {
+						if ($interest == '1') {
+							if(array_key_exists($interestId,$settings->interests)) {
+								$interests[$settings->interests[$interestId]] = $interestId;
+							}
+						}
+					}
+					return $interests;
+        }
+
+        return $this->getMessage(1000, $email, [], Craft::t('mailchimp-subscribe', 'The email address does not exist on this list'), false);
+    }
+
+    /**
+     * Get groups the user is subscribed too
+     *
+     * @param string $email
+     * @param string $formListId
+     *
+     * @return array|mixed
+     */
+    public function getUnsubGroups($email, $formListId)
+    {
+        // get settings
+        $settings = Plugin::$plugin->getSettings();
+
+        if ($email === '' || !$this->validateEmail($email)) { // error, invalid email
+            return $this->getMessage(1000, $email, false, Craft::t('mailchimp-subscribe', 'Invalid email'));
+        }
+
+        $listIdStr = $formListId ?? $settings->listId;
+
+        // check if we got an api key and a list id
+        if ($settings->apiKey === '' || $listIdStr === '') { // error, no API key or list id
+            return $this->getMessage(2000, $email, false, Craft::t('mailchimp-subscribe', 'API Key or List ID not supplied. Check your settings.'));
+        }
+
+        if ($member = $this->getMemberByEmail($email, $listIdStr)) {
+					$interests = [];
+					foreach ($member['interests'] as $interestId => $interest) {
+						if (empty($interest)) {
+							if(array_key_exists($interestId,$settings->interests)) {
+								$interests[$settings->interests[$interestId]] = $interestId;
+							}
+						}
+					}
+					return $interests;
+        }
+
+        return $this->getMessage(1000, $email, [], Craft::t('mailchimp-subscribe', 'The email address does not exist on this list'), false);
+    }
+
+    /**
+     * Get groups the user is subscribed too
+     *
+     * @param string $email
+     * @param string $formListId
+     *
+     * @return array|mixed
+     */
+    public function removeFromGroup($interestId, $email, $formListId)
+    {
+        // get settings
+        $settings = Plugin::$plugin->getSettings();
+
+        if ($email === '' || !$this->validateEmail($email)) { // error, invalid email
+            return $this->getMessage(1000, $email, false, Craft::t('mailchimp-subscribe', 'Invalid email'));
+        }
+
+				$listId = $settings->listId;
+
+        // check if we got an api key and a list id
+        if ($settings->apiKey === '' || $listId === '') { // error, no API key or list id
+            return $this->getMessage(2000, $email, false, Craft::t('mailchimp-subscribe', 'API Key or List ID not supplied. Check your settings.'));
+        }
+
+				$mc = new Mailchimp($settings->apiKey);
+
+				$postVars = [
+					'interests' => [
+							$interestId => false
+					]
+				];
+
+				try {
+					$result = $mc->request('lists/'.$listId.'/members/'.md5(strtolower($email)), $postVars, 'PATCH');
+	        return [
+	            'success' => true,
+	            'message' => $result
+	        ];
+		    } catch (\Exception $e) { // subscriber didn't exist
+		        $msg = json_decode($e->getMessage());
+
+		        return [
+		            'success' => false,
+		            'message' => $msg->detail
+		        ];
+		    }
+    }
+
+
+    /**
+     * Get groups the user is subscribed too
+     *
+     * @param string $email
+     * @param string $formListId
+     *
+     * @return array|mixed
+     */
+    public function addToGroup($interestId, $email, $formListId)
+    {
+        // get settings
+        $settings = Plugin::$plugin->getSettings();
+
+        if ($email === '' || !$this->validateEmail($email)) { // error, invalid email
+            return $this->getMessage(1000, $email, false, Craft::t('mailchimp-subscribe', 'Invalid email'));
+        }
+
+				$listId = $settings->listId;
+
+        // check if we got an api key and a list id
+        if ($settings->apiKey === '' || $listId === '') { // error, no API key or list id
+            return $this->getMessage(2000, $email, false, Craft::t('mailchimp-subscribe', 'API Key or List ID not supplied. Check your settings.'));
+        }
+
+				$mc = new Mailchimp($settings->apiKey);
+
+				$postVars = [
+					'interests' => [
+							$interestId => true
+					]
+				];
+
+				try {
+					$result = $mc->request('lists/'.$listId.'/members/'.md5(strtolower($email)), $postVars, 'PATCH');
+	        return [
+	            'success' => true,
+	            'message' => $result
+	        ];
+		    } catch (\Exception $e) { // subscriber didn't exist
+		        $msg = json_decode($e->getMessage());
+
+		        return [
+		            'success' => false,
+		            'message' => $msg->detail
+		        ];
+		    }
+    }
+
 
     /**
      * Returns interest groups in list by list id
@@ -181,8 +356,8 @@ class MailchimpSubscribeService extends Component
         $mc = new Mailchimp($settings->apiKey);
 
         try {
-            $result = $mc->request('lists/'.$listId.'/interest-categories');
-
+            $result = $mc->request('lists/'.$listId.'/interest-categories/67637e6ae9/interests');
+					echo "<pre>"; print_r($result); exit;
             $return = [];
 
             foreach ($result['categories'] as $category) {
@@ -317,6 +492,42 @@ class MailchimpSubscribeService extends Component
             $member = false;
         }
 
+        return $member;
+    }
+
+    /**
+     * Return user object by email if it is present in one or more lists.
+     *
+     * @param string $email
+     * @param string $listId
+     *
+     * @return array|mixed
+     */
+    public function getInterests()
+    {
+        // get settings
+        $settings = Plugin::$plugin->getSettings();
+				$listId = $settings->listId;
+        // create a new api instance
+        $mc = new Mailchimp($settings->apiKey);
+				$all_interests = [];
+        try { //lists/{list_id}/interest-categories/{interest_category_id}/interests/{id}
+
+            $interest_category = $mc->request('lists/'.$listId.'/interest-categories');
+
+						foreach($interest_category['categories'] as $interest) {
+							$interest_deets = $mc->request('lists/'.$listId.'/interest-categories/'.$interest->id.'/interests');
+							#echo 'lists/'.$listId.'/interest-categories/interests/'.$interest->id;
+							foreach ($interest_deets['interests'] as $the_interest) {
+								$all_interests[$the_interest->name] = $the_interest->id;
+							}
+						}
+						echo "<pre>";
+						print_r($all_interests);
+						exit;
+        } catch (\Exception $e) { // subscriber didn't exist
+            $member = false;
+        }
         return $member;
     }
 

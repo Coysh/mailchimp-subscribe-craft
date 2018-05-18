@@ -12,4 +12,5 @@ return [
     'apiKey' => '',
     'listId' => '',
     'doubleOptIn' => false,
+		
 ];

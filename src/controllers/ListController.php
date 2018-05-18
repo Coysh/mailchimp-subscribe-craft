@@ -38,14 +38,14 @@ class ListController extends Controller
 
     /**
      * Controller action for subscribing an email to a list
-     * 
+     *
      * @return null|\yii\web\Response
      */
     public function actionSubscribe()
     {
         $this->requirePostRequest();
         $request = Craft::$app->getRequest();
-        
+
         // get post variables
         $email = $request->getParam('email', '');
         $formListId = $request->getParam('lid', '');
@@ -56,58 +56,130 @@ class ListController extends Controller
 
         // call service method
         $result = Plugin::$plugin->mailchimpSubscribe->subscribe($email, $formListId, $emailType, $vars, $language);
-        
+
         // if this was an ajax request, return json
         if ($request->getAcceptsJson()) {
             return $this->asJson($result);
         }
-        
+
         // if a redirect variable was passed, do redirect
         if ($redirect !== '' && $result['success']) {
             return $this->redirectToPostedUrl(array('mailchimpSubscribe' => $result));
         }
-        
+
         // set route variables and return
         Craft::$app->getUrlManager()->setRouteParams([
             'variables' => ['mailchimpSubscribe' => $result]
         ]);
-        
+
         return null;
     }
 
     /**
      * Controller action for checking if a user is on a list
-     * 
+     *
      * @return null|\yii\web\Response
      */
     public function actionCheckIfSubscribed()
     {
         $this->requirePostRequest();
         $request = Craft::$app->getRequest();
-        
+
         // get post variables
         $email = $request->getParam('email', '');
         $formListId = $request->getParam('lid', '');
         $redirect = $request->getParam('redirect', '');
-        
+
         // call service method
         $result = Plugin::$plugin->mailchimpSubscribe->checkIfSubscribed($email, $formListId);
-        
+
         // if this was an ajax request, return json
         if ($request->getAcceptsJson()) {
             return $this->asJson($result);
         }
-        
+
         // if a redirect variable was passed, do redirect
         if ($redirect !== '' && $result['success']) {
             return $this->redirectToPostedUrl(array('mailchimpSubscribe' => $result));
         }
-        
+
         // set route variables and return
         Craft::$app->getUrlManager()->setRouteParams([
             'variables' => ['mailchimpSubscribe' => $result]
         ]);
-        
+
+        return null;
+    }
+
+    /**
+     * Controller action for getting all groups
+     *
+     * @return null|\yii\web\Response
+     */
+    public function actionGetGroups()
+    {
+        //$this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+
+        // call service method
+        $result = Plugin::$plugin->mailchimpSubscribe->getInterests();
+				/*echo "<pre>";
+				print_r($result);
+				exit;*/
+        // if this was an ajax request, return json
+        if ($request->getAcceptsJson()) {
+            return $this->asJson($result);
+        }
+
+        return null;
+    }
+
+    /**
+     * Controller action for getting groups a user is subscribed to
+     *
+     * @return null|\yii\web\Response
+     */
+    public function actionRemoveFromGroup()
+    {
+        //$this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+
+        // get post variables
+        $email = $request->getParam('email', '');
+        $formListId = $request->getParam('lid', '');
+        $interestId = $request->getParam('interestId', '');
+
+        // call service method
+        $result = Plugin::$plugin->mailchimpSubscribe->removeFromGroup($interestId,$email, $formListId);
+
+        // if this was an ajax request, return json
+        if ($request->getAcceptsJson()) {
+            return $this->asJson($result);
+        }
+        return null;
+    }
+    /**
+     * Controller action for getting groups a user is subscribed to
+     *
+     * @return null|\yii\web\Response
+     */
+    public function actionAddToGroup()
+    {
+        //$this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+
+        // get post variables
+        $email = $request->getParam('email', '');
+        $formListId = $request->getParam('lid', '');
+        $interestId = $request->getParam('interestId', '');
+
+        // call service method
+        $result = Plugin::$plugin->mailchimpSubscribe->addToGroup($interestId,$email, $formListId);
+
+        // if this was an ajax request, return json
+        if ($request->getAcceptsJson()) {
+            return $this->asJson($result);
+        }
         return null;
     }
 }

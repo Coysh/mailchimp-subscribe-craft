@@ -37,7 +37,7 @@ class MailchimpSubscribeVariable
 
     /**
      * Check if email is subscribed to list
-     * 
+     *
      * @param string $email
      * @param null $listId
      *
@@ -46,6 +46,34 @@ class MailchimpSubscribeVariable
     public function checkIfSubscribed($email, $listId = null)
     {
         return Plugin::$plugin->mailchimpSubscribe->checkIfSubscribed($email, $listId);
+    }
+
+    /**
+     * Check if email is subscribed to list
+     *
+     * @param string $email
+     * @param null $listId
+     *
+     * @return array|mixed
+     */
+    public function getSubscribedGroups($email, $listId = null)
+    {
+        //return Plugin::$plugin->mailchimpSubscribe->getGroups($email, $listId);
+        return Plugin::$plugin->mailchimpSubscribe->getGroups($email, $listId);
+    }
+
+    /**
+     * Check if email is subscribed to list
+     *
+     * @param string $email
+     * @param null $listId
+     *
+     * @return array|mixed
+     */
+    public function getUnSubscribedGroups($email, $listId = null)
+    {
+        //return Plugin::$plugin->mailchimpSubscribe->getGroups($email, $listId);
+        return Plugin::$plugin->mailchimpSubscribe->getUnsubGroups($email, $listId);
     }
 
 }

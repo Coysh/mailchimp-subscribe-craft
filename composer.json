@@ -1,5 +1,5 @@
 {
-    "name": "aelvan/mailchimp-subscribe",
+    "name": "aelvan/mailchimp-subscribe-tc",
     "description": "Simple Craft plugin for subscribing to a MailChimp list.",
     "type": "craft-plugin",
     "keywords": [
