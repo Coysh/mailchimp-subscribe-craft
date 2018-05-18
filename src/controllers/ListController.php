@@ -182,4 +182,20 @@ class ListController extends Controller
         }
         return null;
     }
+
+
+    /**
+     * Controller action for refreshing all the interest groups to database
+     *
+     * @return null|\yii\web\Response
+     */
+    public function actionRefreshInterests()
+    {
+        //$this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+
+        // call service method
+        $result = Plugin::$plugin->mailchimpSubscribe->refreshInterests();
+				return $this->asJson($result);
+    }
 }

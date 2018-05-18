@@ -13,6 +13,7 @@ namespace aelvan\mailchimpsubscribe\services;
 use Craft;
 use craft\base\Component;
 use aelvan\mailchimpsubscribe\MailchimpSubscribe as Plugin;
+use aelvan\mailchimpsubscribe\records\MailchimpSubscribeRecord;
 use Mailchimp\Mailchimp;
 
 /**
@@ -169,11 +170,13 @@ class MailchimpSubscribeService extends Component
 					$interests = [];
 					foreach ($member['interests'] as $interestId => $interest) {
 						if ($interest == '1') {
-							if(array_key_exists($interestId,$settings->interests)) {
-								$interests[$settings->interests[$interestId]] = $interestId;
+							$record = MailchimpSubscribeRecord::find()->select('group_name')->where(['group_id'=>$interestId])->limit(1)->asArray()->one();
+							if($record) {
+								$interests[$record['group_name']] = $interestId;
 							}
 						}
 					}
+
 					return $interests;
         }
 
@@ -208,8 +211,9 @@ class MailchimpSubscribeService extends Component
 					$interests = [];
 					foreach ($member['interests'] as $interestId => $interest) {
 						if (empty($interest)) {
-							if(array_key_exists($interestId,$settings->interests)) {
-								$interests[$settings->interests[$interestId]] = $interestId;
+							$record = MailchimpSubscribeRecord::find()->select('group_name')->where(['group_id'=>$interestId])->limit(1)->asArray()->one();
+							if($record) {
+								$interests[$record['group_name']] = $interestId;
 							}
 						}
 					}
@@ -422,6 +426,91 @@ class MailchimpSubscribeService extends Component
         }
 
         return array_merge($memberInterests, $interests);
+    }
+
+
+    /**
+     * Refresh the interest groups in the record
+     *
+     * @return array
+     */
+    public function refreshInterests()
+    {
+			$error = false;
+			// get settings
+			$settings = Plugin::$plugin->getSettings();
+			$interest_categories = $settings->interestCategories;
+			$listId = $settings->listId;
+			// create a new api instance
+			$mc = new Mailchimp($settings->apiKey);
+			//Get the interests from MC
+			foreach($interest_categories as $parent_id=>$parent_name) {
+				$interest_deets = $mc->request('lists/'.$listId.'/interest-categories/'.$parent_id.'/interests');
+				foreach ($interest_deets['interests'] as $the_interest) {
+					$interest_name	= $the_interest->name;
+					$interest_id		= $the_interest->id;
+					$record = MailchimpSubscribeRecord::find()->where(['group_id' => $interest_id])->one();
+					if(!$record){
+						// record is null => there is no existing shop => create a new
+						$record = new MailchimpSubscribeRecord();
+					}
+					$record->group_id = utf8_encode(trim($interest_id));
+					$record->group_name = utf8_encode(trim($interest_name));
+					$record->parent_id = utf8_encode(trim($parent_id));
+					$record->parent_name = utf8_encode(trim($parent_name));
+
+					if(!$record->save()) {
+						$error =  $record->getErrors();;
+					} else {
+					}
+				}
+			}
+
+			if(!$error) {
+				//success message
+			} else {
+				echo "error occurred";
+			}
+			exit;
+			/*
+			foreach($churches as $row){
+				// try to fetch a record by custom id attribute from your csv
+				$membershipNum = $row['membership_num'];
+
+				$record = ChurchSearchRecord::find()
+				->where(['membership_num' => $membershipNum])
+				->one();
+				if(!$record){
+					// record is null => there is no existing shop => create a new
+					$record = new ChurchSearchRecord();
+				}
+				if((empty($row['latitude']))||(empty($row['longitude']))) {
+					//Geocode
+					$place = $row['address_1'].', '.$row['address_2'].', '.$row['address_3'].', '.$row['town'].', '.$row['postcode'];
+					$latlng = ChurchSearchService::getLatLngFromAddress($place);
+					if(is_array($latlng)) {
+						$row['latitude'] = $latlng['lat'];
+						$row['longitude'] = $latlng['lng'];
+					}
+				}
+				foreach($row as $index => $field){
+						#echo $index." -- ".$field."<br />";
+					$record->$index = utf8_encode(trim($field));
+				}
+
+				if(!$record->save()) {
+					$error =  $record->getErrors();;
+				} else {
+				}
+			}
+
+			if(!$error) {
+				//success message
+			} else {
+				//error message
+			}
+*/
+
     }
 
     /**
