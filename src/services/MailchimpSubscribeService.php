@@ -71,6 +71,8 @@ class MailchimpSubscribeService extends Component
         foreach ($listIdArr as $listId) {
             $member = $this->getMemberByEmail($email, $listId);
 
+
+
             if ($member && !empty($interests) && isset($member['interests'])) {
                 #$interests = $this->prepInterests($listId, $member, $interests);
             }
@@ -80,10 +82,10 @@ class MailchimpSubscribeService extends Component
 						foreach($all_interests as $interest) {
 							$interest_id = $interest['group_id'];
 							if(!array_key_exists($interest_id,$interests)) {
-								$interests[$interest_id] = '0';
+								$interests[$interest_id] = false;
 							}
 						}
-						#echo "<pre>";print_r($interests);exit;
+						#echo "<pre>";print_r($member);exit;
 
             // subscribe
             $postVars = [
@@ -101,10 +103,14 @@ class MailchimpSubscribeService extends Component
                 $vars['interests'] = $interests;
             }
 
+						if($member) {
+							$vars['existing_member'] = true;
+						}
+
             if (null !== $language) {
                 $postVars['language'] = $language;
             }
-
+						#echo "<pre>";echo $listId."\n";print_r($postVars);exit;
             try {
                 $result = $mc->request('lists/'.$listId.'/members/'.md5(strtolower($email)), $postVars, 'PUT');
                 $results[] = $this->getMessage(200, $email, $vars, Craft::t('mailchimp-subscribe', 'Subscribed successfully'), true);
