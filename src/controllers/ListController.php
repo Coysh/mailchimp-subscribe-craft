@@ -112,20 +112,21 @@ class ListController extends Controller
     }
 
     /**
-     * Controller action for getting all groups
+     * Controller action for checking if a user is on a list
      *
      * @return null|\yii\web\Response
      */
     public function actionGetGroups()
     {
-        //$this->requirePostRequest();
+        $this->requirePostRequest();
         $request = Craft::$app->getRequest();
 
+        // get post variables
+        $email = $request->getParam('email', '');
+
         // call service method
-        $result = Plugin::$plugin->mailchimpSubscribe->getInterests();
-				/*echo "<pre>";
-				print_r($result);
-				exit;*/
+        $result = Plugin::$plugin->mailchimpSubscribe->getGroups($email,null);
+
         // if this was an ajax request, return json
         if ($request->getAcceptsJson()) {
             return $this->asJson($result);
@@ -133,6 +134,7 @@ class ListController extends Controller
 
         return null;
     }
+
 
     /**
      * Controller action for getting groups a user is subscribed to

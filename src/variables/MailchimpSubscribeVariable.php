@@ -76,4 +76,17 @@ class MailchimpSubscribeVariable
         return Plugin::$plugin->mailchimpSubscribe->getUnsubGroups($email, $listId);
     }
 
+    /**
+     * List all of the groups and the interests
+     *
+     * @param string $email
+     * @param null $listId
+     *
+     * @return array|mixed
+     */
+    public function getInterests()
+    {
+        return Plugin::$plugin->mailchimpSubscribe->getInterests();
+    }
+
 }

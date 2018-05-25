@@ -48,6 +48,8 @@ class MailchimpSubscribeRecord extends ActiveRecord
         return [
             'group_id' => AttributeType::String,
             'group_name' => AttributeType::String,
+            'group_desc' => AttributeType::String,
+            'group_visible' => AttributeType::Boolean,
             'parent_id' => AttributeType::String,
             'parent_name' => AttributeType::String
         ];

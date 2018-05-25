@@ -112,6 +112,8 @@ class Install extends Migration
                 // Custom columns in the table
 				            'group_id' => $this->string(25)->notNull()->defaultValue(''),
 				            'group_name' => $this->string(255)->notNull()->defaultValue(''),
+				            'group_desc' => $this->string(255)->notNull()->defaultValue(''),
+				            'group_visible' => $this->boolean()->defaultValue(true),
 				            'parent_id' => $this->string(255)->notNull()->defaultValue(''),
 				            'parent_name' => $this->string(255)->notNull()->defaultValue('')
                 ]

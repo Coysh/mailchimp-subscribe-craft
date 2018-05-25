@@ -72,8 +72,18 @@ class MailchimpSubscribeService extends Component
             $member = $this->getMemberByEmail($email, $listId);
 
             if ($member && !empty($interests) && isset($member['interests'])) {
-                $interests = $this->prepInterests($listId, $member, $interests);
+                #$interests = $this->prepInterests($listId, $member, $interests);
             }
+
+						$all_interests = MailchimpSubscribeRecord::find()->select('group_id')->where('group_visible = 1')->asArray()->all();
+
+						foreach($all_interests as $interest) {
+							$interest_id = $interest['group_id'];
+							if(!array_key_exists($interest_id,$interests)) {
+								$interests[$interest_id] = '0';
+							}
+						}
+						#echo "<pre>";print_r($interests);exit;
 
             // subscribe
             $postVars = [
@@ -128,11 +138,11 @@ class MailchimpSubscribeService extends Component
             return $this->getMessage(1000, $email, false, Craft::t('mailchimp-subscribe', 'Invalid email'));
         }
 
-        $listIdStr = $formListId ?? $settings->listId;
+        $listIdStr = $settings->listId;
 
         // check if we got an api key and a list id
         if ($settings->apiKey === '' || $listIdStr === '') { // error, no API key or list id
-            return $this->getMessage(2000, $email, false, Craft::t('mailchimp-subscribe', 'API Key or List ID not supplied. Check your settings.'));
+					return $this->getMessage(2000, $email, false, Craft::t('mailchimp-subscribe', 'API Key or List ID not supplied. Check your settings.'));
         }
 
         if ($this->getMemberByEmail($email, $listIdStr)) {
@@ -359,38 +369,29 @@ class MailchimpSubscribeService extends Component
         // create a new api instance
         $mc = new Mailchimp($settings->apiKey);
 
-        try {
-            $result = $mc->request('lists/'.$listId.'/interest-categories/67637e6ae9/interests');
-					echo "<pre>"; print_r($result); exit;
+				try {
+            $result = $mc->request('lists/'.$listId.'/interest-categories');
             $return = [];
-
             foreach ($result['categories'] as $category) {
                 $categoryData = [];
                 $categoryData['title'] = $category->title;
                 $categoryData['type'] = $category->type;
                 $categoryData['interests'] = [];
-
                 $interestsResult = $mc->request('lists/'.$listId.'/interest-categories/'.$category->id.'/interests');
-
                 foreach ($interestsResult['interests'] as $interest) {
                     $interestData = [];
                     $interestData['id'] = $interest->id;
                     $interestData['name'] = $interest->name;
-
                     $categoryData['interests'][] = $interestData;
                 }
-
                 $return[] = $categoryData;
             }
-
-
             return [
                 'success' => true,
                 'groups' => $return
             ];
         } catch (\Exception $e) { // subscriber didn't exist
             $msg = json_decode($e->getMessage());
-
             return [
                 'success' => false,
                 'message' => $msg->detail
@@ -453,6 +454,14 @@ class MailchimpSubscribeService extends Component
 					if(!$record){
 						// record is null => there is no existing shop => create a new
 						$record = new MailchimpSubscribeRecord();
+					} else {
+						//We delete and re-save record to make sure lists are ordered properly
+						$group_desc = $record->group_desc;
+						$group_visible = $record->group_visible;
+						$record->delete();
+						$record = new MailchimpSubscribeRecord();
+						$record->group_desc = $group_desc;
+						$record->group_visible = $group_visible;
 					}
 					$record->group_id = utf8_encode(trim($interest_id));
 					$record->group_name = utf8_encode(trim($interest_name));
@@ -472,46 +481,22 @@ class MailchimpSubscribeService extends Component
 				echo "error occurred";
 			}
 			exit;
-			/*
-			foreach($churches as $row){
-				// try to fetch a record by custom id attribute from your csv
-				$membershipNum = $row['membership_num'];
-
-				$record = ChurchSearchRecord::find()
-				->where(['membership_num' => $membershipNum])
-				->one();
-				if(!$record){
-					// record is null => there is no existing shop => create a new
-					$record = new ChurchSearchRecord();
-				}
-				if((empty($row['latitude']))||(empty($row['longitude']))) {
-					//Geocode
-					$place = $row['address_1'].', '.$row['address_2'].', '.$row['address_3'].', '.$row['town'].', '.$row['postcode'];
-					$latlng = ChurchSearchService::getLatLngFromAddress($place);
-					if(is_array($latlng)) {
-						$row['latitude'] = $latlng['lat'];
-						$row['longitude'] = $latlng['lng'];
-					}
-				}
-				foreach($row as $index => $field){
-						#echo $index." -- ".$field."<br />";
-					$record->$index = utf8_encode(trim($field));
-				}
-
-				if(!$record->save()) {
-					$error =  $record->getErrors();;
-				} else {
-				}
-			}
-
-			if(!$error) {
-				//success message
-			} else {
-				//error message
-			}
-*/
 
     }
+
+		/**
+		 * Get all the interests and groups
+		 *
+		 * @param string $formListId
+		 *
+		 * @return array|mixed
+		 */
+		public function getInterests()
+		{
+			$interests = MailchimpSubscribeRecord::find()->where('group_visible = 1')->asArray()->all();
+			return $interests;
+		}
+
 
     /**
      * Check if there is an id in the posted interests, in a groups interests
@@ -581,42 +566,6 @@ class MailchimpSubscribeService extends Component
             $member = false;
         }
 
-        return $member;
-    }
-
-    /**
-     * Return user object by email if it is present in one or more lists.
-     *
-     * @param string $email
-     * @param string $listId
-     *
-     * @return array|mixed
-     */
-    public function getInterests()
-    {
-        // get settings
-        $settings = Plugin::$plugin->getSettings();
-				$listId = $settings->listId;
-        // create a new api instance
-        $mc = new Mailchimp($settings->apiKey);
-				$all_interests = [];
-        try { //lists/{list_id}/interest-categories/{interest_category_id}/interests/{id}
-
-            $interest_category = $mc->request('lists/'.$listId.'/interest-categories');
-
-						foreach($interest_category['categories'] as $interest) {
-							$interest_deets = $mc->request('lists/'.$listId.'/interest-categories/'.$interest->id.'/interests');
-							#echo 'lists/'.$listId.'/interest-categories/interests/'.$interest->id;
-							foreach ($interest_deets['interests'] as $the_interest) {
-								$all_interests[$the_interest->name] = $the_interest->id;
-							}
-						}
-						echo "<pre>";
-						print_r($all_interests);
-						exit;
-        } catch (\Exception $e) { // subscriber didn't exist
-            $member = false;
-        }
         return $member;
     }
 
